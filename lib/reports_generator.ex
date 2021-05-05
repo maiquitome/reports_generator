@@ -1,11 +1,13 @@
 defmodule ReportsGenerator do
   @moduledoc """
-  Documentation for `ReportsGenerator`.
+  Builds a report.
   """
+
+  alias ReportsGenerator.Parser
 
   @spec build(String) :: map
   @doc """
-  Extracts information from a file.
+  Builds a report.
 
   ## Examples
 
@@ -45,28 +47,30 @@ defmodule ReportsGenerator do
 
   """
   def build(file_name) do
-    "reports/#{file_name}"
-    |> File.stream!()
-    |> Enum.reduce(map_report(), fn line_string, acc_map ->
-      # parse_line(line): ["3", "hambúrguer", 47]
-      [id, _food_name, price] = parse_line(line_string)
-      Map.put(acc_map, id, acc_map[id] + price)
-      # iex> Map.put(%{}, "1", 48)
-      # %{"1" => 48}
-    end)
+    file_name
+    |> Parser.parse_file()
+    |> build_report_map()
   end
 
-  defp map_report, do: Enum.into(1..30, %{}, &{Integer.to_string(&1), 0})
+  @spec fetch_higher_cost(map) :: {String, number()}
+  @doc """
+  Returns the higher cost.
 
-  defp parse_line(line) do
-    # "3,hambúrguer,47\n"
-    line
-    |> String.trim()
-    # "3,hambúrguer,47"
-    |> String.split(",")
-    # ["3", "hambúrguer", "47"]
-    |> List.update_at(2, &String.to_integer/1)
+  ## Examples
 
-    # ["3", "hambúrguer", 47]
+      iex> ReportsGenerator.build("report_complete.csv") |> ReportsGenerator.fetch_higher_cost()
+      {"13", 282953}
+
+  """
+  def fetch_higher_cost(report), do: Enum.max_by(report, fn {_key, value} -> value end)
+
+  defp build_report_map(list) do
+    Enum.reduce(list, report_map(), fn line_list, acc_map -> sum_values(acc_map, line_list) end)
   end
+
+  defp sum_values(map, [id, _food_name, price]) do
+    Map.put(map, id, price + map[id])
+  end
+
+  defp report_map, do: Enum.into(1..30, %{}, &{Integer.to_string(&1), 0})
 end
