@@ -77,6 +77,20 @@ defmodule ReportsGenerator do
     |> build_report_map()
   end
 
+  # iex> ReportsGenerator.build_from_many(["report_1.csv","report_2.csv"])
+  def build_from_many(file_names) when not is_list(file_names) do
+    {:error, "Please provide a list of strings"}
+  end
+
+  def build_from_many(file_names) do
+    result =
+      file_names
+      |> Task.async_stream(&build/1)
+      |> Enum.reduce(report_layout(), fn {:ok, result}, acc -> sum_reports(acc, result) end)
+
+    {:ok, result}
+  end
+
   @spec fetch_higher_cost(map, String) :: {:ok, {String, number()}} | {:error, String}
   @doc """
   Returns the higher cost.
@@ -92,26 +106,40 @@ defmodule ReportsGenerator do
 
   def fetch_higher_cost(_report, _option), do: {:error, "INVALID OPTION!!!!!"}
 
-  defp build_report_map(list) do
-    Enum.reduce(list, report_map(), fn line_list, acc_map -> sum_values(line_list, acc_map) end)
+  defp sum_reports(
+         %{"foods" => foods1, "users" => users1},
+         %{"foods" => foods2, "users" => users2}
+       ) do
+    foods = merge_maps(foods1, foods2)
+    users = merge_maps(users1, users2)
+
+    build_report(foods, users)
   end
 
-  defp sum_values([id, food_name, price], %{"foods" => foods, "users" => users} = report) do
+  defp merge_maps(map1, map2) do
+    Map.merge(map1, map2, fn _key, value1, value2 -> value1 + value2 end)
+  end
+
+  defp build_report(foods, users) do
+    %{"users" => users, "foods" => foods}
+  end
+
+  defp build_report_map(list) do
+    Enum.reduce(list, report_layout(), fn line_list, acc_map -> sum_values(line_list, acc_map) end)
+  end
+
+  defp sum_values([id, food_name, price], %{"foods" => foods, "users" => users}) do
     foods = Map.put(foods, food_name, foods[food_name] + 1)
     users = Map.put(users, id, price + users[id])
 
-    # report
-    # |> Map.put("users", users)
-    # |> Map.put("foods", foods)
-
-    %{report | "users" => users, "foods" => foods}
+    build_report(foods, users)
   end
 
-  defp report_map do
+  defp report_layout do
     foods = Enum.into(@available_foods, %{}, &{&1, 0})
     users = Enum.into(1..30, %{}, &{Integer.to_string(&1), 0})
 
-    %{"users" => users, "foods" => foods}
+    build_report(foods, users)
 
     # %{
     #   "foods" => %{
