@@ -16,55 +16,57 @@ defmodule ReportsGenerator do
     "sushi"
   ]
 
+  @options ["foods", "users"]
+
   @spec build(String) :: map
   @doc """
   Builds a report.
 
   ## Examples
 
-      iex> ReportsGenerator.build("report_complete.csv")
+      iex> ReportsGenerator.build("report_test.csv")
       %{
         "foods" => %{
-          "açaí" => 37742,
-          "churrasco" => 37650,
-          "esfirra" => 37462,
-          "hambúrguer" => 37577,
-          "pastel" => 37392,
-          "pizza" => 37365,
-          "prato_feito" => 37519,
-          "sushi" => 37293
+          "açaí" => 1,
+          "churrasco" => 2,
+          "esfirra" => 3,
+          "hambúrguer" => 2,
+          "pastel" => 0,
+          "pizza" => 2,
+          "prato_feito" => 0,
+          "sushi" => 0
         },
         "users" => %{
-          "1" => 278849,
-          "10" => 268317,
-          "11" => 268877,
-          "12" => 276306,
-          "13" => 282953,
-          "14" => 277084,
-          "15" => 280105,
-          "16" => 271831,
-          "17" => 272883,
-          "18" => 271421,
-          "19" => 277720,
-          "2" => 271031,
-          "20" => 273446,
-          "21" => 275026,
-          "22" => 278025,
-          "23" => 276523,
-          "24" => 274481,
-          "25" => 274512,
-          "26" => 274199,
-          "27" => 278001,
-          "28" => 274256,
-          "29" => 273030,
-          "3" => 272250,
-          "30" => 275978,
-          "4" => 277054,
-          "5" => 270926,
-          "6" => 272053,
-          "7" => 273112,
-          "8" => 275161,
-          "9" => 274003
+          "1" => 48,
+          "10" => 36,
+          "11" => 0,
+          "12" => 0,
+          "13" => 0,
+          "14" => 0,
+          "15" => 0,
+          "16" => 0,
+          "17" => 0,
+          "18" => 0,
+          "19" => 0,
+          "2" => 45,
+          "20" => 0,
+          "21" => 0,
+          "22" => 0,
+          "23" => 0,
+          "24" => 0,
+          "25" => 0,
+          "26" => 0,
+          "27" => 0,
+          "28" => 0,
+          "29" => 0,
+          "3" => 31,
+          "30" => 0,
+          "4" => 42,
+          "5" => 49,
+          "6" => 18,
+          "7" => 27,
+          "8" => 25,
+          "9" => 24
         }
       }
 
@@ -75,7 +77,7 @@ defmodule ReportsGenerator do
     |> build_report_map()
   end
 
-  @spec fetch_higher_cost(map) :: {String, number()}
+  @spec fetch_higher_cost(map, String) :: {:ok, {String, number()}} | {:error, String}
   @doc """
   Returns the higher cost.
 
@@ -85,7 +87,10 @@ defmodule ReportsGenerator do
       {"13", 282953}
 
   """
-  def fetch_higher_cost(report), do: Enum.max_by(report, fn {_key, value} -> value end)
+  def fetch_higher_cost(report, option) when option in @options,
+    do: {:ok, Enum.max_by(report[option], fn {_option, value} -> value end)}
+
+  def fetch_higher_cost(_report, _option), do: {:error, "INVALID OPTION!!!!!"}
 
   defp build_report_map(list) do
     Enum.reduce(list, report_map(), fn line_list, acc_map -> sum_values(line_list, acc_map) end)
